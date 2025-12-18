@@ -1,12 +1,18 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from typing import List, Optional
 from datetime import date
+from pathlib import Path
 import pyodbc
 import re
 
 from database import get_db_connection, init_database
 from models import AuditCreate, AuditUpdate, AuditResponse, AuditCountByDate, YearlyStats
+
+# Get the project root directory (parent of backend folder)
+PROJECT_ROOT = Path(__file__).parent.parent
 
 # ========================================
 # VALIDATION CONSTANTS
@@ -38,6 +44,28 @@ app.add_middleware(
 async def startup_event():
     """Initialize database on startup."""
     init_database()
+
+
+# ========================================
+# ROOT & STATIC FILES
+# ========================================
+
+@app.get("/", tags=["Frontend"])
+async def serve_index():
+    """Serve the main index.html page."""
+    return FileResponse(PROJECT_ROOT / "index.html")
+
+
+@app.get("/styles.css", tags=["Frontend"])
+async def serve_css():
+    """Serve the CSS file."""
+    return FileResponse(PROJECT_ROOT / "styles.css")
+
+
+@app.get("/script.js", tags=["Frontend"])
+async def serve_js():
+    """Serve the JavaScript file."""
+    return FileResponse(PROJECT_ROOT / "script.js")
 
 
 # ========================================

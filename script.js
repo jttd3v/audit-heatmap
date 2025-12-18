@@ -596,21 +596,48 @@ document.addEventListener('DOMContentLoaded', function() {
         heatmapMonthsRow.innerHTML = '';
         
         const year = heatmapSelectedYear;
-        const startDate = new Date(year, 0, 1);
-        const dayOfWeek = startDate.getDay();
-        const gridStartDate = new Date(startDate);
-        gridStartDate.setDate(startDate.getDate() - dayOfWeek);
+        
+        // Calculate exact grid boundaries for the target year only
+        const yearStart = new Date(year, 0, 1);  // Jan 1
+        const yearEnd = new Date(year, 11, 31);  // Dec 31
+        
+        // Grid starts on the Sunday of the week containing Jan 1
+        const startDayOfWeek = yearStart.getDay(); // 0=Sun, 6=Sat
+        const gridStartDate = new Date(yearStart);
+        gridStartDate.setDate(yearStart.getDate() - startDayOfWeek);
+        
+        // Grid ends on the Saturday of the week containing Dec 31
+        const endDayOfWeek = yearEnd.getDay();
+        const gridEndDate = new Date(yearEnd);
+        gridEndDate.setDate(yearEnd.getDate() + (6 - endDayOfWeek));
+        
+        // Calculate total days to render (always complete weeks)
+        const totalDays = Math.round((gridEndDate - gridStartDate) / HEATMAP_DAY_MS) + 1;
+        const totalWeeks = Math.ceil(totalDays / 7);
 
         let heatmapRenderedMonths = new Set();
         let heatmapTotalAudits = 0;
 
-        for (let i = 0; i < HEATMAP_TOTAL_WEEKS * 7; i++) {
+        for (let i = 0; i < totalWeeks * 7; i++) {
             const currentDate = new Date(gridStartDate.getTime() + (i * HEATMAP_DAY_MS));
+            
+            // Generate ISO date string for unique identification (YYYY-MM-DD)
+            const isoDateStr = currentDate.toISOString().split('T')[0];
             
             const cell = document.createElement('div');
             cell.classList.add('heatmap-cell');
             
+            // Unique identifier for each heatmap box
+            cell.id = `heatmap-box-${isoDateStr}`;
+            cell.setAttribute('data-heatmap-date', isoDateStr);
+            
+            // Check if date belongs to the target year
             const isTargetYear = currentDate.getFullYear() === year;
+            
+            // Hide cells outside the target year (preserve grid structure)
+            if (!isTargetYear) {
+                cell.classList.add('heatmap-cell-hidden');
+            }
             
             let count = 0;
             let data = { internal: 0, external: 0 };
@@ -665,17 +692,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Month Labels
+            // Month Labels (one per week column)
             if (i % 7 === 0) {
                 const midWeekDate = new Date(currentDate.getTime() + (3 * HEATMAP_DAY_MS));
                 const monthIndex = midWeekDate.getMonth();
+                const midWeekYear = midWeekDate.getFullYear();
                 
                 const monthSpan = document.createElement('span');
-                if (!heatmapRenderedMonths.has(monthIndex) && midWeekDate.getFullYear() === year) {
+                // Only show month label if: in target year AND first occurrence of that month
+                if (midWeekYear === year && !heatmapRenderedMonths.has(monthIndex)) {
                     monthSpan.textContent = HEATMAP_MONTH_NAMES[monthIndex];
                     heatmapRenderedMonths.add(monthIndex);
                 } else {
-                    monthSpan.textContent = "";
+                    monthSpan.textContent = '';
                 }
                 heatmapMonthsRow.appendChild(monthSpan);
             }

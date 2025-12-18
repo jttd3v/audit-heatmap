@@ -191,12 +191,15 @@ body {
 
 .heatmap-months {
     display: grid;
-    grid-template-columns: repeat(53, var(--heatmap-cell-size));
-    gap: var(--heatmap-cell-gap);
+    /* Auto-flow columns to match dynamic week count (52-53 weeks per year) */
+    grid-auto-flow: column;
+    grid-auto-columns: calc(var(--heatmap-cell-size) + var(--heatmap-cell-gap));
     margin-bottom: 5px;
     margin-left: 30px;
     font-size: 10px;
     color: var(--heatmap-label-color);
+    /* Prevent layout shift on theme change */
+    box-sizing: border-box;
 }
 
 .heatmap-graph {
@@ -211,7 +214,8 @@ body {
     color: var(--heatmap-label-color);
     margin-right: 8px;
     padding-top: 15px;
-    height: calc((var(--heatmap-cell-size) + var(--heatmap-cell-gap)) * 7);
+    /* Match grid height: 7 rows × (cell + gap) - last gap */
+    height: calc((var(--heatmap-cell-size) + var(--heatmap-cell-gap)) * 7 - var(--heatmap-cell-gap));
 }
 
 .heatmap-days span {
@@ -224,6 +228,8 @@ body {
     grid-template-rows: repeat(7, var(--heatmap-cell-size));
     grid-auto-flow: column;
     gap: var(--heatmap-cell-gap);
+    /* Prevent layout reflow on theme change */
+    box-sizing: border-box;
 }
 
 /* Cells */
@@ -233,6 +239,15 @@ body {
     border-radius: 2px;
     background-color: var(--heatmap-color-empty);
     transition: transform 0.1s ease-in-out, background-color 0.3s;
+    /* Consistent sizing: border inside the cell, same in both themes */
+    box-sizing: border-box;
+    border: 1px solid transparent;
+}
+
+/* Hidden cells (outside target year) - invisible but preserve grid structure */
+.heatmap-cell-hidden {
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .heatmap-grid .heatmap-cell {
@@ -317,9 +332,9 @@ html[data-heatmap-theme="dark"] .heatmap-grid .heatmap-cell.heatmap-l4 {
     box-shadow: 0 0 10px var(--heatmap-glow-l4), inset 0 0 4px var(--heatmap-glow-l4);
 }
 
-/* Empty cell border in dark mode */
+/* Empty cell border - visible only in dark mode */
 html[data-heatmap-theme="dark"] .heatmap-cell.heatmap-l0 {
-    border: 1px solid var(--heatmap-border-color);
+    border-color: var(--heatmap-border-color);
 }
 
 /* ========================================
