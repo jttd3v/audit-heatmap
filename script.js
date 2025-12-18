@@ -1,20 +1,51 @@
 document.addEventListener('DOMContentLoaded', function() {
     // ========================================
-    // DOM ELEMENTS
+    // DEFENSIVE PROGRAMMING: DOM ELEMENT VALIDATION
     // ========================================
-    const heatmapGrid = document.getElementById('heatmap-grid');
-    const heatmapMonthsRow = document.getElementById('heatmap-months-row');
-    const heatmapTooltip = document.getElementById('heatmap-tooltip');
-    const heatmapTotalCountEl = document.getElementById('heatmap-total-count');
-    const heatmapYearDisplayEl = document.getElementById('heatmap-year-display');
-    const heatmapThemeToggle = document.getElementById('heatmap-theme-toggle');
-    const heatmapYearSelector = document.getElementById('heatmap-year-selector');
-    const heatmapFilterBtns = document.querySelectorAll('.heatmap-filter');
-    const heatmapNewDropdown = document.getElementById('heatmap-new-dropdown');
-    const heatmapNewBtn = document.getElementById('heatmap-new-btn');
+    /**
+     * Safely retrieves a DOM element by ID with null check.
+     * Follows fail-fast principle - logs warning but doesn't crash.
+     * @param {string} id - Element ID
+     * @param {boolean} required - If true, logs error when not found
+     * @returns {HTMLElement|null}
+     */
+    function safeGetElement(id, required = true) {
+        const element = document.getElementById(id);
+        if (!element && required) {
+            console.warn(`[Heatmap] Required DOM element not found: #${id}`);
+        }
+        return element;
+    }
+
+    /**
+     * Safely retrieves multiple DOM elements by selector.
+     * @param {string} selector - CSS selector
+     * @returns {NodeList}
+     */
+    function safeQueryAll(selector) {
+        const elements = document.querySelectorAll(selector);
+        if (elements.length === 0) {
+            console.warn(`[Heatmap] No elements found for selector: ${selector}`);
+        }
+        return elements;
+    }
 
     // ========================================
-    // CONFIG
+    // DOM ELEMENTS (with null safety)
+    // ========================================
+    const heatmapGrid = safeGetElement('heatmap-grid');
+    const heatmapMonthsRow = safeGetElement('heatmap-months-row');
+    const heatmapTooltip = safeGetElement('heatmap-tooltip');
+    const heatmapTotalCountEl = safeGetElement('heatmap-total-count');
+    const heatmapYearDisplayEl = safeGetElement('heatmap-year-display');
+    const heatmapThemeToggle = safeGetElement('heatmap-theme-toggle');
+    const heatmapYearSelector = safeGetElement('heatmap-year-selector');
+    const heatmapFilterBtns = safeQueryAll('.heatmap-filter');
+    const heatmapNewDropdown = safeGetElement('heatmap-new-dropdown');
+    const heatmapNewBtn = safeGetElement('heatmap-new-btn');
+
+    // ========================================
+    // CONFIG (aligned with context map)
     // ========================================
     const HEATMAP_API_BASE = 'http://localhost:8000/api';  // Python FastAPI server
     const HEATMAP_START_YEAR = 2024;
@@ -23,6 +54,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const HEATMAP_DAY_MS = 24 * 60 * 60 * 1000;
     const HEATMAP_MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const HEATMAP_STORAGE_KEY = 'heatmap-audit-data';  // Fallback for offline mode
+    
+    // Validation constants (aligned with backend)
+    const VALIDATION = {
+        MAX_TITLE_LENGTH: 255,
+        VALID_AUDIT_TYPES: ['internal', 'external'],
+        DATE_PATTERN: /^\d{4}-\d{2}-\d{2}$/,
+        MIN_YEAR: 1900,
+        MAX_YEAR: 2100
+    };
 
     // ========================================
     // STATE
@@ -31,6 +71,74 @@ document.addEventListener('DOMContentLoaded', function() {
     let heatmapActiveFilters = { internal: true, external: true };
     let heatmapData = {};  // Cache for heatmap data from API
     let heatmapIsOnline = true;  // Track API connection status
+
+    // ========================================
+    // INPUT VALIDATION HELPERS
+    // ========================================
+    /**
+     * Validates audit form data before submission.
+     * Mirrors backend validation for fail-fast UX.
+     * @param {Object} auditData - {title, description, date}
+     * @returns {{valid: boolean, errors: string[]}}
+     */
+    function validateAuditData(auditData) {
+        const errors = [];
+        
+        // Title validation
+        if (!auditData.title || !auditData.title.trim()) {
+            errors.push('Title is required');
+        } else if (auditData.title.length > VALIDATION.MAX_TITLE_LENGTH) {
+            errors.push(`Title cannot exceed ${VALIDATION.MAX_TITLE_LENGTH} characters`);
+        }
+        
+        // Date validation
+        if (!auditData.date) {
+            errors.push('Date is required');
+        } else if (!VALIDATION.DATE_PATTERN.test(auditData.date)) {
+            errors.push('Date must be in YYYY-MM-DD format');
+        } else {
+            // Validate actual date value
+            const [year, month, day] = auditData.date.split('-').map(Number);
+            const testDate = new Date(year, month - 1, day);
+            if (testDate.getFullYear() !== year || 
+                testDate.getMonth() !== month - 1 || 
+                testDate.getDate() !== day) {
+                errors.push('Invalid date value');
+            }
+        }
+        
+        return { valid: errors.length === 0, errors };
+    }
+
+    /**
+     * Sanitizes user input to prevent XSS.
+     * @param {string} input - Raw user input
+     * @returns {string} - Sanitized string
+     */
+    function sanitizeInput(input) {
+        if (typeof input !== 'string') return '';
+        return input
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#x27;');
+    }
+
+    /**
+     * Safely parses JSON with error handling.
+     * @param {string} jsonString - JSON string to parse
+     * @param {*} defaultValue - Default value if parsing fails
+     * @returns {*} - Parsed object or default value
+     */
+    function safeJsonParse(jsonString, defaultValue = null) {
+        try {
+            return JSON.parse(jsonString);
+        } catch (error) {
+            console.warn('[Heatmap] JSON parse failed:', error.message);
+            return defaultValue;
+        }
+    }
 
     // ========================================
     // API FUNCTIONS (MSSQL via Python FastAPI)
@@ -46,13 +154,23 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
+                // Extract error message from response if available
+                let errorDetail = `API Error: ${response.status}`;
+                try {
+                    const errorBody = await response.json();
+                    if (errorBody.detail) {
+                        errorDetail = errorBody.detail;
+                    }
+                } catch {
+                    // Ignore JSON parse errors for error response
+                }
+                throw new Error(errorDetail);
             }
             
             heatmapIsOnline = true;
             return await response.json();
         } catch (error) {
-            console.error('API request failed:', error);
+            console.error('[Heatmap] API request failed:', error);
             heatmapIsOnline = false;
             throw error;
         }
@@ -132,37 +250,77 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // UPDATE - Update an audit
+    // UPDATE - Update an audit (with error handling)
     async function heatmapUpdateAudit(auditId, auditData) {
-        return await heatmapApiRequest(`/audits/${auditId}`, {
-            method: 'PUT',
-            body: JSON.stringify(auditData)
-        });
+        // Input validation
+        if (!auditId || auditId <= 0) {
+            throw new Error('Invalid audit ID');
+        }
+        
+        // Validate audit data if provided
+        if (auditData.title !== undefined) {
+            const validation = validateAuditData({ 
+                title: auditData.title, 
+                date: auditData.audit_date || '2025-01-01' // Dummy date for validation
+            });
+            if (!validation.valid) {
+                throw new Error(validation.errors.join(', '));
+            }
+        }
+        
+        try {
+            const result = await heatmapApiRequest(`/audits/${auditId}`, {
+                method: 'PUT',
+                body: JSON.stringify(auditData)
+            });
+            // Refresh heatmap data after updating
+            await heatmapLoadHeatmapData(heatmapSelectedYear);
+            return result;
+        } catch (error) {
+            console.error('[Heatmap] Update audit failed:', error);
+            throw error;
+        }
     }
 
-    // DELETE - Delete an audit
+    // DELETE - Delete an audit (with error handling)
     async function heatmapDeleteAudit(auditId) {
-        return await heatmapApiRequest(`/audits/${auditId}`, {
-            method: 'DELETE'
-        });
+        // Input validation
+        if (!auditId || auditId <= 0) {
+            throw new Error('Invalid audit ID');
+        }
+        
+        try {
+            const result = await heatmapApiRequest(`/audits/${auditId}`, {
+                method: 'DELETE'
+            });
+            // Refresh heatmap data after deleting
+            await heatmapLoadHeatmapData(heatmapSelectedYear);
+            return result;
+        } catch (error) {
+            console.error('[Heatmap] Delete audit failed:', error);
+            throw error;
+        }
     }
 
     // ========================================
-    // OFFLINE FALLBACK (localStorage)
+    // OFFLINE FALLBACK (localStorage) - with safe JSON parsing
     // ========================================
     function heatmapLoadDataOffline() {
         const stored = localStorage.getItem(HEATMAP_STORAGE_KEY);
         if (stored) {
-            const data = JSON.parse(stored);
+            const data = safeJsonParse(stored, { internal: [], external: [] });
             // Convert to heatmap format
             heatmapData = {};
             ['internal', 'external'].forEach(type => {
-                (data[type] || []).forEach(audit => {
-                    if (!heatmapData[audit.date]) {
-                        heatmapData[audit.date] = { internal: 0, external: 0, total: 0 };
+                const audits = Array.isArray(data[type]) ? data[type] : [];
+                audits.forEach(audit => {
+                    if (audit && audit.date) {
+                        if (!heatmapData[audit.date]) {
+                            heatmapData[audit.date] = { internal: 0, external: 0, total: 0 };
+                        }
+                        heatmapData[audit.date][type]++;
+                        heatmapData[audit.date].total++;
                     }
-                    heatmapData[audit.date][type]++;
-                    heatmapData[audit.date].total++;
                 });
             });
         }
@@ -170,13 +328,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function heatmapCreateAuditOffline(type, auditData) {
+        // Validate type
+        if (!VALIDATION.VALID_AUDIT_TYPES.includes(type)) {
+            console.error('[Heatmap] Invalid audit type for offline create:', type);
+            return null;
+        }
+        
         const stored = localStorage.getItem(HEATMAP_STORAGE_KEY);
-        const data = stored ? JSON.parse(stored) : { internal: [], external: [] };
+        const data = safeJsonParse(stored, { internal: [], external: [] });
+        
+        // Ensure arrays exist
+        if (!Array.isArray(data.internal)) data.internal = [];
+        if (!Array.isArray(data.external)) data.external = [];
         
         const audit = {
             id: Date.now().toString(),
-            title: auditData.title,
-            description: auditData.description,
+            title: sanitizeInput(auditData.title),
+            description: sanitizeInput(auditData.description || ''),
             date: auditData.date,
             createdAt: new Date().toISOString()
         };
@@ -229,88 +397,120 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ========================================
-    // DROPDOWN
+    // DROPDOWN (with null safety)
     // ========================================
-    heatmapNewBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        heatmapNewDropdown.classList.toggle('heatmap-dropdown-open');
-    });
+    if (heatmapNewBtn && heatmapNewDropdown) {
+        heatmapNewBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            heatmapNewDropdown.classList.toggle('heatmap-dropdown-open');
+        });
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!heatmapNewDropdown.contains(e.target)) {
-            heatmapNewDropdown.classList.remove('heatmap-dropdown-open');
-        }
-    });
-
-    // Dropdown actions
-    document.querySelectorAll('[data-heatmap-action]').forEach(el => {
-        el.addEventListener('click', () => {
-            const action = el.getAttribute('data-heatmap-action');
-            heatmapNewDropdown.classList.remove('heatmap-dropdown-open');
-            
-            if (action === 'new-internal') {
-                heatmapNavigateTo('internal');
-            } else if (action === 'new-external') {
-                heatmapNavigateTo('external');
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!heatmapNewDropdown.contains(e.target)) {
+                heatmapNewDropdown.classList.remove('heatmap-dropdown-open');
             }
         });
-    });
+
+        // Dropdown actions
+        document.querySelectorAll('[data-heatmap-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.getAttribute('data-heatmap-action');
+                heatmapNewDropdown.classList.remove('heatmap-dropdown-open');
+                
+                if (action === 'new-internal') {
+                    heatmapNavigateTo('internal');
+                } else if (action === 'new-external') {
+                    heatmapNavigateTo('external');
+                }
+            });
+        });
+    }
 
     // ========================================
-    // FORMS
+    // FORMS (with client-side validation)
     // ========================================
-    const heatmapFormInternal = document.getElementById('heatmap-form-internal');
-    const heatmapFormExternal = document.getElementById('heatmap-form-external');
+    const heatmapFormInternal = safeGetElement('heatmap-form-internal');
+    const heatmapFormExternal = safeGetElement('heatmap-form-external');
 
-    heatmapFormInternal.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = heatmapFormInternal.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Saving...';
+    /**
+     * Displays validation errors to user.
+     * @param {HTMLFormElement} form - Form element
+     * @param {string[]} errors - Array of error messages
+     */
+    function showFormErrors(form, errors) {
+        // Remove existing error messages
+        const existingErrors = form.querySelectorAll('.heatmap-form-error');
+        existingErrors.forEach(el => el.remove());
         
-        try {
-            const auditData = {
-                title: document.getElementById('heatmap-internal-title').value,
-                description: document.getElementById('heatmap-internal-description').value,
-                date: document.getElementById('heatmap-internal-date').value
-            };
-            await heatmapCreateAudit('internal', auditData);
-            heatmapFormInternal.reset();
-            heatmapNavigateTo('home');
-        } catch (error) {
-            alert('Failed to save audit. Please try again.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Save Internal Audit';
+        if (errors.length > 0) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'heatmap-form-error';
+            errorDiv.style.cssText = 'color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 10px;';
+            errorDiv.innerHTML = errors.map(e => `• ${sanitizeInput(e)}`).join('<br>');
+            form.insertBefore(errorDiv, form.firstChild);
         }
-    });
+    }
 
-    heatmapFormExternal.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = heatmapFormExternal.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Saving...';
+    /**
+     * Generic form submission handler with validation.
+     * @param {HTMLFormElement} form - Form element
+     * @param {string} auditType - 'internal' or 'external'
+     * @param {string} submitBtnText - Original button text
+     */
+    function handleFormSubmit(form, auditType, submitBtnText) {
+        if (!form) return;
         
-        try {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (!submitBtn) return;
+            
+            // Get form values safely
+            const titleEl = form.querySelector(`#heatmap-${auditType}-title`);
+            const descEl = form.querySelector(`#heatmap-${auditType}-description`);
+            const dateEl = form.querySelector(`#heatmap-${auditType}-date`);
+            
             const auditData = {
-                title: document.getElementById('heatmap-external-title').value,
-                description: document.getElementById('heatmap-external-description').value,
-                date: document.getElementById('heatmap-external-date').value
+                title: titleEl ? titleEl.value : '',
+                description: descEl ? descEl.value : '',
+                date: dateEl ? dateEl.value : ''
             };
-            await heatmapCreateAudit('external', auditData);
-            heatmapFormExternal.reset();
-            heatmapNavigateTo('home');
-        } catch (error) {
-            alert('Failed to save audit. Please try again.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Save External Audit';
-        }
-    });
+            
+            // Client-side validation (fail-fast, better UX)
+            const validation = validateAuditData(auditData);
+            if (!validation.valid) {
+                showFormErrors(form, validation.errors);
+                return;
+            }
+            
+            // Clear any previous errors
+            showFormErrors(form, []);
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            
+            try {
+                await heatmapCreateAudit(auditType, auditData);
+                form.reset();
+                heatmapNavigateTo('home');
+            } catch (error) {
+                const errorMessage = error.message || 'Failed to save audit. Please try again.';
+                showFormErrors(form, [errorMessage]);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = submitBtnText;
+            }
+        });
+    }
+
+    // Initialize form handlers
+    handleFormSubmit(heatmapFormInternal, 'internal', 'Save Internal Audit');
+    handleFormSubmit(heatmapFormExternal, 'external', 'Save External Audit');
 
     // ========================================
-    // THEME MANAGEMENT
+    // THEME MANAGEMENT (with null safety)
     // ========================================
     function heatmapInitTheme() {
         const savedTheme = localStorage.getItem('heatmap-theme') || 'light';
@@ -327,13 +527,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function heatmapUpdateThemeIcon(theme) {
-        heatmapThemeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+        if (heatmapThemeToggle) {
+            heatmapThemeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
     }
 
     // ========================================
-    // YEAR SELECTOR
+    // YEAR SELECTOR (with null safety)
     // ========================================
     function heatmapRenderYearSelector() {
+        if (!heatmapYearSelector) return;
+        
         heatmapYearSelector.innerHTML = '';
         
         for (let year = HEATMAP_CURRENT_YEAR; year >= HEATMAP_START_YEAR; year--) {
@@ -383,9 +587,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
-    // RENDER HEATMAP GRID
+    // RENDER HEATMAP GRID (with null safety)
     // ========================================
     function heatmapRenderGrid() {
+        if (!heatmapGrid || !heatmapMonthsRow) return;
+        
         heatmapGrid.innerHTML = '';
         heatmapMonthsRow.innerHTML = '';
         
@@ -441,17 +647,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // Tooltip with null safety
             cell.addEventListener('mouseenter', (e) => {
-                heatmapTooltip.textContent = heatmapTooltipText;
-                heatmapTooltip.style.opacity = '1';
-                
-                const rect = cell.getBoundingClientRect();
-                heatmapTooltip.style.left = `${rect.left + window.scrollX - (heatmapTooltip.offsetWidth / 2) + 7}px`;
-                heatmapTooltip.style.top = `${rect.top + window.scrollY - 35}px`;
+                if (heatmapTooltip) {
+                    heatmapTooltip.textContent = heatmapTooltipText;
+                    heatmapTooltip.style.opacity = '1';
+                    
+                    const rect = cell.getBoundingClientRect();
+                    heatmapTooltip.style.left = `${rect.left + window.scrollX - (heatmapTooltip.offsetWidth / 2) + 7}px`;
+                    heatmapTooltip.style.top = `${rect.top + window.scrollY - 35}px`;
+                }
             });
 
             cell.addEventListener('mouseleave', () => {
-                heatmapTooltip.style.opacity = '0';
+                if (heatmapTooltip) {
+                    heatmapTooltip.style.opacity = '0';
+                }
             });
 
             // Month Labels
@@ -472,9 +683,13 @@ document.addEventListener('DOMContentLoaded', function() {
             heatmapGrid.appendChild(cell);
         }
 
-        // Update header
-        heatmapTotalCountEl.textContent = heatmapTotalAudits;
-        heatmapYearDisplayEl.textContent = year;
+        // Update header (with null safety)
+        if (heatmapTotalCountEl) {
+            heatmapTotalCountEl.textContent = heatmapTotalAudits;
+        }
+        if (heatmapYearDisplayEl) {
+            heatmapYearDisplayEl.textContent = year;
+        }
         
         // Show connection status
         updateConnectionStatus();
@@ -504,10 +719,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
-    // EVENT LISTENERS
+    // EVENT LISTENERS (with null safety)
     // ========================================
-    heatmapThemeToggle.addEventListener('click', heatmapToggleTheme);
+    if (heatmapThemeToggle) {
+        heatmapThemeToggle.addEventListener('click', heatmapToggleTheme);
+    }
     
+    // NodeList.forEach safely handles empty lists
     heatmapFilterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const type = btn.getAttribute('data-heatmap-type');
@@ -516,16 +734,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ========================================
-    // INITIALIZE
+    // INITIALIZE (with error boundary)
     // ========================================
     async function heatmapInit() {
-        heatmapInitTheme();
-        heatmapRenderYearSelector();
-        
-        // Check API and load data
-        await heatmapCheckHealth();
-        await heatmapLoadHeatmapData(heatmapSelectedYear);
-        heatmapRenderGrid();
+        try {
+            heatmapInitTheme();
+            heatmapRenderYearSelector();
+            
+            // Check API and load data
+            await heatmapCheckHealth();
+            await heatmapLoadHeatmapData(heatmapSelectedYear);
+            heatmapRenderGrid();
+        } catch (error) {
+            console.error('Heatmap initialization failed:', error);
+            // Graceful degradation - show offline mode
+            heatmapIsOnline = false;
+            heatmapRenderGrid();
+        }
     }
 
     heatmapInit();

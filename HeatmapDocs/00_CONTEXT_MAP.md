@@ -1,6 +1,7 @@
 # 🗺️ HEATMAP PROJECT - CONTEXT MAP
 > **Single Source of Truth for AI Sessions**  
-> Last Updated: 2024-12-18
+> Last Updated: 2024-12-19  
+> Revision: **v1.1**
 
 ---
 
@@ -90,20 +91,44 @@ audit-heatmap/
 
 ---
 
-## 🚀 Quick Start Commands
+## 🚀 Quick Start Commands (Development)
 
+### Step 1: Open Terminal in Project Root
 ```powershell
-# Activate virtual environment
+cd "C:\Users\TRAINING CAPT TRANI\audit-heatmap"
+```
+
+### Step 2: Activate Virtual Environment
+```powershell
 & ".venv\Scripts\Activate.ps1"
+```
+> ✅ You should see `(.venv)` prefix in your terminal prompt when activated.
 
-# Install dependencies
+### Step 3: Install Dependencies (first time only)
+```powershell
 pip install -r backend/requirements.txt
+```
 
-# Initialize database
+### Step 4: Initialize Database (if not already created)
+```powershell
 python backend/database.py
+```
 
-# Start API server
+### Step 5: Start the Backend API Server
+```powershell
 uvicorn backend.main:app --reload --port 8000
+```
+> 🌐 API will be available at: `http://localhost:8000`  
+> 📄 Swagger Docs: `http://localhost:8000/docs`  
+> 🔄 `--reload` enables hot-reload for development changes
+
+### Step 6: Open Frontend
+- Open `index.html` in a browser, or
+- Use VS Code Live Server extension for auto-refresh
+
+### Alternative: Use run.bat (Windows)
+```powershell
+.\backend\run.bat
 ```
 
 ---
