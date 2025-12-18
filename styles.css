@@ -1,0 +1,576 @@
+:root {
+    --heatmap-bg-color: #ffffff;
+    --heatmap-text-color: #24292f;
+    --heatmap-border-color: #e1e4e8;
+    --heatmap-cell-size: 14px;
+    --heatmap-cell-gap: 3px;
+    --heatmap-container-bg: #fff;
+    --heatmap-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    --heatmap-label-color: #57606a;
+    --heatmap-title-color: #0f172a;
+    
+    /* Color Scale - Light Mode */
+    --heatmap-color-empty: #ebedf0;
+    --heatmap-color-l1: #e0f2fe;
+    --heatmap-color-l2: #7dd3fc;
+    --heatmap-color-l3: #0284c7;
+    --heatmap-color-l4: #082f49;
+    
+    /* Button colors */
+    --heatmap-btn-bg: #f3f4f6;
+    --heatmap-btn-hover: #e5e7eb;
+    --heatmap-btn-active: #0284c7;
+    --heatmap-btn-active-text: #ffffff;
+}
+
+/* Dark Mode */
+html[data-heatmap-theme="dark"] {
+    --heatmap-bg-color: #0d1117;
+    --heatmap-text-color: #c9d1d9;
+    --heatmap-border-color: #30363d;
+    --heatmap-container-bg: #161b22;
+    --heatmap-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    --heatmap-label-color: #8b949e;
+    --heatmap-title-color: #c9d1d9;
+    
+    /* Color Scale - Dark Mode (Green like GitHub) */
+    --heatmap-color-empty: #161b22;
+    --heatmap-color-l1: #0e4429;
+    --heatmap-color-l2: #006d32;
+    --heatmap-color-l3: #26a641;
+    --heatmap-color-l4: #39d353;
+    
+    /* Button colors */
+    --heatmap-btn-bg: #21262d;
+    --heatmap-btn-hover: #30363d;
+    --heatmap-btn-active: #238636;
+    --heatmap-btn-active-text: #ffffff;
+    
+    /* Neon glow */
+    --heatmap-glow-l1: rgba(14, 68, 41, 0.5);
+    --heatmap-glow-l2: rgba(0, 109, 50, 0.6);
+    --heatmap-glow-l3: rgba(38, 166, 65, 0.7);
+    --heatmap-glow-l4: rgba(57, 211, 83, 0.8);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background-color: var(--heatmap-bg-color);
+    color: var(--heatmap-text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.heatmap-wrapper {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.heatmap-container {
+    border: 1px solid var(--heatmap-border-color);
+    border-radius: 6px;
+    padding: 24px;
+    background: var(--heatmap-container-bg);
+    box-shadow: var(--heatmap-shadow);
+    max-width: 100%;
+    overflow-x: auto;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+/* Header */
+.heatmap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.heatmap-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.heatmap-theme-toggle {
+    background: var(--heatmap-btn-bg);
+    border: 1px solid var(--heatmap-border-color);
+    border-radius: 6px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.heatmap-theme-toggle:hover {
+    background: var(--heatmap-btn-hover);
+}
+
+.heatmap-title {
+    margin: 0;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--heatmap-title-color);
+}
+
+.heatmap-count {
+    font-weight: 700;
+    color: var(--heatmap-btn-active);
+}
+
+/* Filters */
+.heatmap-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.heatmap-filter {
+    background: var(--heatmap-btn-bg);
+    border: 1px solid var(--heatmap-border-color);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--heatmap-text-color);
+}
+
+.heatmap-filter:hover {
+    background: var(--heatmap-btn-hover);
+}
+
+.heatmap-filter.heatmap-filter-active {
+    background: var(--heatmap-btn-active);
+    color: var(--heatmap-btn-active-text);
+    border-color: var(--heatmap-btn-active);
+}
+
+/* Year Selector */
+.heatmap-year-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.heatmap-year-btn {
+    background: var(--heatmap-btn-bg);
+    border: 1px solid var(--heatmap-border-color);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--heatmap-text-color);
+    min-width: 70px;
+}
+
+.heatmap-year-btn:hover {
+    background: var(--heatmap-btn-hover);
+}
+
+.heatmap-year-btn.heatmap-year-active {
+    background: var(--heatmap-btn-active);
+    color: var(--heatmap-btn-active-text);
+    border-color: var(--heatmap-btn-active);
+}
+
+/* Graph Container */
+.heatmap-graph-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.heatmap-months {
+    display: grid;
+    grid-template-columns: repeat(53, var(--heatmap-cell-size));
+    gap: var(--heatmap-cell-gap);
+    margin-bottom: 5px;
+    margin-left: 30px;
+    font-size: 10px;
+    color: var(--heatmap-label-color);
+}
+
+.heatmap-graph {
+    display: flex;
+}
+
+.heatmap-days {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--heatmap-label-color);
+    margin-right: 8px;
+    padding-top: 15px;
+    height: calc((var(--heatmap-cell-size) + var(--heatmap-cell-gap)) * 7);
+}
+
+.heatmap-days span {
+    height: var(--heatmap-cell-size);
+    line-height: var(--heatmap-cell-size);
+}
+
+.heatmap-grid {
+    display: grid;
+    grid-template-rows: repeat(7, var(--heatmap-cell-size));
+    grid-auto-flow: column;
+    gap: var(--heatmap-cell-gap);
+}
+
+/* Cells */
+.heatmap-cell {
+    width: var(--heatmap-cell-size);
+    height: var(--heatmap-cell-size);
+    border-radius: 2px;
+    background-color: var(--heatmap-color-empty);
+    transition: transform 0.1s ease-in-out, background-color 0.3s;
+}
+
+.heatmap-grid .heatmap-cell {
+    cursor: pointer;
+}
+
+.heatmap-grid .heatmap-cell:hover {
+    transform: scale(1.2);
+    outline: 1px solid rgba(128,128,128,0.4);
+    z-index: 10;
+}
+
+/* Tooltip */
+.heatmap-tooltip {
+    position: absolute;
+    background: #24292f;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 100;
+    white-space: nowrap;
+}
+
+.heatmap-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #24292f transparent transparent transparent;
+}
+
+/* Legend */
+.heatmap-legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 16px;
+    font-size: 10px;
+    color: var(--heatmap-label-color);
+    width: 100%;
+}
+
+.heatmap-legend-items {
+    display: flex;
+    gap: 3px;
+    margin: 0 6px;
+}
+
+/* Legend cells - no hover effect */
+.heatmap-legend-items .heatmap-cell {
+    cursor: default;
+}
+
+/* Levels */
+.heatmap-l0 { background-color: var(--heatmap-color-empty); }
+.heatmap-l1 { background-color: var(--heatmap-color-l1); }
+.heatmap-l2 { background-color: var(--heatmap-color-l2); }
+.heatmap-l3 { background-color: var(--heatmap-color-l3); }
+.heatmap-l4 { background-color: var(--heatmap-color-l4); }
+
+/* Neon Glow - Dark Mode Only */
+html[data-heatmap-theme="dark"] .heatmap-grid .heatmap-cell.heatmap-l1 {
+    box-shadow: 0 0 4px var(--heatmap-glow-l1), inset 0 0 2px var(--heatmap-glow-l1);
+}
+
+html[data-heatmap-theme="dark"] .heatmap-grid .heatmap-cell.heatmap-l2 {
+    box-shadow: 0 0 6px var(--heatmap-glow-l2), inset 0 0 2px var(--heatmap-glow-l2);
+}
+
+html[data-heatmap-theme="dark"] .heatmap-grid .heatmap-cell.heatmap-l3 {
+    box-shadow: 0 0 8px var(--heatmap-glow-l3), inset 0 0 3px var(--heatmap-glow-l3);
+}
+
+html[data-heatmap-theme="dark"] .heatmap-grid .heatmap-cell.heatmap-l4 {
+    box-shadow: 0 0 10px var(--heatmap-glow-l4), inset 0 0 4px var(--heatmap-glow-l4);
+}
+
+/* Empty cell border in dark mode */
+html[data-heatmap-theme="dark"] .heatmap-cell.heatmap-l0 {
+    border: 1px solid var(--heatmap-border-color);
+}
+
+/* ========================================
+   NAVIGATION & PAGE SYSTEM
+   ======================================== */
+
+/* Main App Container */
+.heatmap-app {
+    width: 100%;
+    max-width: 1200px;
+}
+
+/* Page Views */
+.heatmap-page {
+    display: none;
+}
+
+.heatmap-page.heatmap-page-active {
+    display: block;
+}
+
+/* Breadcrumb */
+.heatmap-breadcrumb {
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--heatmap-label-color);
+}
+
+.heatmap-breadcrumb a {
+    color: var(--heatmap-btn-active);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.heatmap-breadcrumb a:hover {
+    opacity: 0.8;
+}
+
+.heatmap-breadcrumb span {
+    color: var(--heatmap-text-color);
+}
+
+/* ========================================
+   DROPDOWN BUTTON
+   ======================================== */
+
+.heatmap-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.heatmap-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--heatmap-btn-active);
+    color: var(--heatmap-btn-active-text);
+    border: 1px solid var(--heatmap-btn-active);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.heatmap-dropdown-btn:hover {
+    opacity: 0.9;
+}
+
+.heatmap-dropdown-btn .heatmap-dropdown-icon {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.heatmap-dropdown.heatmap-dropdown-open .heatmap-dropdown-icon {
+    transform: rotate(180deg);
+}
+
+.heatmap-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: var(--heatmap-container-bg);
+    border: 1px solid var(--heatmap-border-color);
+    border-radius: 6px;
+    box-shadow: var(--heatmap-shadow);
+    min-width: 160px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s;
+}
+
+.heatmap-dropdown.heatmap-dropdown-open .heatmap-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.heatmap-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 10px 14px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--heatmap-text-color);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.heatmap-dropdown-item:first-child {
+    border-radius: 6px 6px 0 0;
+}
+
+.heatmap-dropdown-item:last-child {
+    border-radius: 0 0 6px 6px;
+}
+
+.heatmap-dropdown-item:hover {
+    background: var(--heatmap-btn-hover);
+}
+
+/* ========================================
+   FORM STYLES
+   ======================================== */
+
+.heatmap-form-container {
+    background: var(--heatmap-container-bg);
+    border: 1px solid var(--heatmap-border-color);
+    border-radius: 6px;
+    padding: 32px;
+    box-shadow: var(--heatmap-shadow);
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.heatmap-form-title {
+    margin: 0 0 24px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--heatmap-title-color);
+}
+
+/* Floating Label Textfield */
+.heatmap-textfield {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.heatmap-textfield-input {
+    width: 100%;
+    padding: 16px 12px 8px 12px;
+    font-size: 14px;
+    border: 1px solid var(--heatmap-border-color);
+    border-radius: 4px;
+    background: var(--heatmap-container-bg);
+    color: var(--heatmap-text-color);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.heatmap-textfield-input:focus {
+    border-color: var(--heatmap-btn-active);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+}
+
+html[data-heatmap-theme="dark"] .heatmap-textfield-input:focus {
+    box-shadow: 0 0 0 3px rgba(35, 134, 54, 0.2);
+}
+
+.heatmap-textfield-label {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--heatmap-label-color);
+    pointer-events: none;
+    transition: all 0.2s ease;
+    background: var(--heatmap-container-bg);
+    padding: 0 4px;
+}
+
+.heatmap-textfield-input:focus ~ .heatmap-textfield-label,
+.heatmap-textfield-input:not(:placeholder-shown) ~ .heatmap-textfield-label {
+    top: 0;
+    font-size: 12px;
+    color: var(--heatmap-btn-active);
+}
+
+/* Textarea variant */
+.heatmap-textfield-textarea {
+    min-height: 100px;
+    resize: vertical;
+    padding-top: 20px;
+}
+
+.heatmap-textfield-textarea ~ .heatmap-textfield-label {
+    top: 20px;
+}
+
+.heatmap-textfield-textarea:focus ~ .heatmap-textfield-label,
+.heatmap-textfield-textarea:not(:placeholder-shown) ~ .heatmap-textfield-label {
+    top: 0;
+}
+
+/* Form Actions */
+.heatmap-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 32px;
+}
+
+.heatmap-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid var(--heatmap-border-color);
+}
+
+.heatmap-btn-secondary {
+    background: var(--heatmap-btn-bg);
+    color: var(--heatmap-text-color);
+}
+
+.heatmap-btn-secondary:hover {
+    background: var(--heatmap-btn-hover);
+}
+
+.heatmap-btn-primary {
+    background: var(--heatmap-btn-active);
+    color: var(--heatmap-btn-active-text);
+    border-color: var(--heatmap-btn-active);
+}
+
+.heatmap-btn-primary:hover {
+    opacity: 0.9;
+}
+
+/* Header Controls Layout */
+.heatmap-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+

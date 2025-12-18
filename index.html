@@ -4,344 +4,139 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audit Activity Heatmap</title>
-    <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #24292f;
-            --cell-size: 14px;
-            --cell-gap: 3px;
-            
-            /* Color Scale */
-            --color-empty: #ebedf0;
-            --color-l1: #e0f2fe; /* Lightest Blue */
-            --color-l2: #7dd3fc;
-            --color-l3: #0284c7;
-            --color-l4: #082f49; /* Deepest Blue */
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            border: 1px solid #e1e4e8;
-            border-radius: 6px;
-            padding: 24px;
-            background: #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            max-width: 100%;
-            overflow-x: auto;
-        }
-
-        h2 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-weight: 600;
-            font-size: 18px;
-            color: #0f172a;
-        }
-
-        .graph-container {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .months {
-            display: grid;
-            grid-template-columns: repeat(53, var(--cell-size));
-            gap: var(--cell-gap);
-            margin-bottom: 5px;
-            margin-left: 30px; /* Offset for days labels */
-            font-size: 10px;
-            color: #57606a;
-        }
-
-        .months span {
-            grid-column-end: span 4; /* Rough approximation for month spacing */
-        }
-
-        .graph {
-            display: flex;
-        }
-
-        .days {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            font-size: 10px;
-            color: #57606a;
-            margin-right: 8px;
-            padding-top: 15px; /* Align with first row somewhat */
-            height: calc((var(--cell-size) + var(--cell-gap)) * 7);
-        }
-
-        .days span {
-            height: var(--cell-size);
-            line-height: var(--cell-size);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-rows: repeat(7, var(--cell-size));
-            grid-auto-flow: column;
-            gap: var(--cell-gap);
-        }
-
-        .cell {
-            width: var(--cell-size);
-            height: var(--cell-size);
-            border-radius: 2px;
-            background-color: var(--color-empty);
-            transition: transform 0.1s ease-in-out;
-            cursor: pointer;
-        }
-
-        .cell:hover {
-            transform: scale(1.2);
-            border: 1px solid rgba(0,0,0,0.2);
-            z-index: 10;
-        }
-
-        /* Tooltip */
-        .tooltip {
-            position: absolute;
-            background: #24292f;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 100;
-            white-space: nowrap;
-        }
-
-        .tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: #24292f transparent transparent transparent;
-        }
-
-        /* Legend */
-        .legend {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            margin-top: 16px;
-            font-size: 10px;
-            color: #57606a;
-            width: 100%;
-        }
-
-        .legend-items {
-            display: flex;
-            gap: 3px;
-            margin: 0 6px;
-        }
-
-        /* Levels */
-        .l0 { background-color: var(--color-empty); }
-        .l1 { background-color: var(--color-l1); }
-        .l2 { background-color: var(--color-l2); }
-        .l3 { background-color: var(--color-l3); }
-        .l4 { background-color: var(--color-l4); }
-
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <div class="container">
-        <h2>2025 Audit Log</h2>
-        
-        <div class="graph-container">
-            <!-- Month labels will be injected here -->
-            <div class="months" id="months-row"></div>
+    <div class="heatmap-app">
+        <!-- PAGE: Home (Heatmap View) -->
+        <div class="heatmap-page heatmap-page-active" id="heatmap-page-home">
+            <div class="heatmap-wrapper">
+                <div class="heatmap-container">
+                    <!-- Header -->
+                    <div class="heatmap-header">
+                        <div class="heatmap-header-left">
+                            <button class="heatmap-theme-toggle" id="heatmap-theme-toggle" title="Toggle theme">🌙</button>
+                            <h2 class="heatmap-title">
+                                <span class="heatmap-count" id="heatmap-total-count">0</span> audits in <span id="heatmap-year-display">2025</span>
+                            </h2>
+                        </div>
+                        <div class="heatmap-header-controls">
+                            <!-- New Audit Dropdown -->
+                            <div class="heatmap-dropdown" id="heatmap-new-dropdown">
+                                <button class="heatmap-dropdown-btn" id="heatmap-new-btn">
+                                    <span>+ New</span>
+                                    <span class="heatmap-dropdown-icon">▼</span>
+                                </button>
+                                <div class="heatmap-dropdown-menu">
+                                    <button class="heatmap-dropdown-item" data-heatmap-action="new-internal">Internal Audit</button>
+                                    <button class="heatmap-dropdown-item" data-heatmap-action="new-external">External Audit</button>
+                                </div>
+                            </div>
+                            <!-- Filters -->
+                            <div class="heatmap-filters">
+                                <button class="heatmap-filter heatmap-filter-active" data-heatmap-type="internal">Internal Audit</button>
+                                <button class="heatmap-filter heatmap-filter-active" data-heatmap-type="external">External Audit</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Graph -->
+                    <div class="heatmap-graph-container">
+                        <div class="heatmap-months" id="heatmap-months-row"></div>
 
-            <div class="graph">
-                <div class="days">
-                    <span>Mon</span>
-                    <span></span>
-                    <span>Wed</span>
-                    <span></span>
-                    <span>Fri</span>
-                    <span></span>
-                    <span></span>
+                        <div class="heatmap-graph">
+                            <div class="heatmap-days">
+                                <span>Mon</span>
+                                <span></span>
+                                <span>Wed</span>
+                                <span></span>
+                                <span>Fri</span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <div class="heatmap-grid" id="heatmap-grid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="heatmap-legend">
+                        <span>Less</span>
+                        <div class="heatmap-legend-items">
+                            <div class="heatmap-cell heatmap-l0"></div>
+                            <div class="heatmap-cell heatmap-l1"></div>
+                            <div class="heatmap-cell heatmap-l2"></div>
+                            <div class="heatmap-cell heatmap-l3"></div>
+                            <div class="heatmap-cell heatmap-l4"></div>
+                        </div>
+                        <span>More</span>
+                    </div>
                 </div>
-                <div class="grid" id="heatmap-grid">
-                    <!-- Cells injected by JS -->
-                </div>
+
+                <!-- Year Selector -->
+                <div class="heatmap-year-selector" id="heatmap-year-selector"></div>
             </div>
         </div>
 
-        <div class="legend">
-            <span>Less</span>
-            <div class="legend-items">
-                <div class="cell l0"></div>
-                <div class="cell l1"></div>
-                <div class="cell l2"></div>
-                <div class="cell l3"></div>
-                <div class="cell l4"></div>
+        <!-- PAGE: New Internal Audit -->
+        <div class="heatmap-page" id="heatmap-page-internal">
+            <div class="heatmap-breadcrumb">
+                <a data-heatmap-nav="home">Home</a> &gt; <span>Internal Audit</span> &gt; <span>New</span>
             </div>
-            <span>More</span>
+            <div class="heatmap-form-container">
+                <h2 class="heatmap-form-title">New Internal Audit</h2>
+                <form id="heatmap-form-internal">
+                    <div class="heatmap-textfield">
+                        <input type="text" class="heatmap-textfield-input" id="heatmap-internal-title" placeholder=" " required>
+                        <label class="heatmap-textfield-label" for="heatmap-internal-title">Audit Title</label>
+                    </div>
+                    <div class="heatmap-textfield">
+                        <textarea class="heatmap-textfield-input heatmap-textfield-textarea" id="heatmap-internal-description" placeholder=" "></textarea>
+                        <label class="heatmap-textfield-label" for="heatmap-internal-description">Description</label>
+                    </div>
+                    <div class="heatmap-textfield">
+                        <input type="date" class="heatmap-textfield-input" id="heatmap-internal-date" placeholder=" " required>
+                        <label class="heatmap-textfield-label" for="heatmap-internal-date">Date</label>
+                    </div>
+                    <div class="heatmap-form-actions">
+                        <button type="button" class="heatmap-btn heatmap-btn-secondary" data-heatmap-nav="home">Cancel</button>
+                        <button type="submit" class="heatmap-btn heatmap-btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- PAGE: New External Audit -->
+        <div class="heatmap-page" id="heatmap-page-external">
+            <div class="heatmap-breadcrumb">
+                <a data-heatmap-nav="home">Home</a> &gt; <span>External Audit</span> &gt; <span>New</span>
+            </div>
+            <div class="heatmap-form-container">
+                <h2 class="heatmap-form-title">New External Audit</h2>
+                <form id="heatmap-form-external">
+                    <div class="heatmap-textfield">
+                        <input type="text" class="heatmap-textfield-input" id="heatmap-external-title" placeholder=" " required>
+                        <label class="heatmap-textfield-label" for="heatmap-external-title">Audit Title</label>
+                    </div>
+                    <div class="heatmap-textfield">
+                        <textarea class="heatmap-textfield-input heatmap-textfield-textarea" id="heatmap-external-description" placeholder=" "></textarea>
+                        <label class="heatmap-textfield-label" for="heatmap-external-description">Description</label>
+                    </div>
+                    <div class="heatmap-textfield">
+                        <input type="date" class="heatmap-textfield-input" id="heatmap-external-date" placeholder=" " required>
+                        <label class="heatmap-textfield-label" for="heatmap-external-date">Date</label>
+                    </div>
+                    <div class="heatmap-form-actions">
+                        <button type="button" class="heatmap-btn heatmap-btn-secondary" data-heatmap-nav="home">Cancel</button>
+                        <button type="submit" class="heatmap-btn heatmap-btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div id="tooltip" class="tooltip"></div>
+    <div id="heatmap-tooltip" class="heatmap-tooltip"></div>
 
-    <script>
-        const grid = document.getElementById('heatmap-grid');
-        const monthsRow = document.getElementById('months-row');
-        const tooltip = document.getElementById('tooltip');
-        
-        // Config
-        const year = 2025;
-        const totalWeeks = 53;
-        
-        // Helper to check leap year
-        const isLeap = (year) => new Date(year, 1, 29).getDate() === 29;
-        
-        // Generate dates for the year
-        const startDate = new Date(year, 0, 1);
-        // Align start date to the grid (if Jan 1 isn't Sunday, we need placeholders?)
-        // GitHub usually starts the grid on the first Sunday/Monday leading up to Jan 1 if needed, 
-        // or just fills the first column based on day of week.
-        
-        // We will loop through 53 weeks * 7 days
-        // 0 = Sunday, 1 = Monday ... 6 = Saturday
-        // We want Monday on top? GitHub puts Sunday on top usually, but labels Mon/Wed/Fri.
-        // Let's assume standard: Sunday (row 0) to Saturday (row 6).
-        
-        const dayMilliseconds = 24 * 60 * 60 * 1000;
-        
-        // Determine the start of the grid. 
-        // If Jan 1 is a Wednesday, we need Sunday, Mon, Tue as empty cells in the first column.
-        const dayOfWeek = startDate.getDay(); // 0 (Sun) to 6 (Sat)
-        // Let's create a date object for the very first cell in the top-left (Sunday of that week)
-        const gridStartDate = new Date(startDate);
-        gridStartDate.setDate(startDate.getDate() - dayOfWeek);
-
-        // Month Names
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        let renderedMonths = new Set();
-
-        // Data Simulation (weighted like the user description: slow start, peak in Oct)
-        function getAuditCount(date) {
-            const month = date.getMonth();
-            const day = date.getDate();
-            
-            // Random base randomness
-            let chance = Math.random();
-            let audits = 0;
-
-            // Pattern logic
-            if (month < 3) { // Jan-Mar: Quiet
-                if (chance > 0.9) audits = Math.floor(Math.random() * 2);
-            } else if (month < 6) { // Apr-Jun: Pickup
-                if (chance > 0.7) audits = Math.floor(Math.random() * 4);
-                if (month === 5 && day > 10 && day < 20) audits += 3; // June burst
-            } else if (month < 8) { // Jul-Aug
-                if (chance > 0.8) audits = Math.floor(Math.random() * 3);
-            } else if (month === 9) { // October: Peak
-                if (chance > 0.3) audits = Math.floor(Math.random() * 8) + 2; 
-            } else if (month === 10) { // Nov
-                if (chance > 0.5) audits = Math.floor(Math.random() * 5);
-            } else { // Dec
-                if (day < 15 && chance > 0.7) audits = Math.floor(Math.random() * 3);
-            }
-
-            return audits;
-        }
-
-        // Generate Grid
-        for (let i = 0; i < totalWeeks * 7; i++) {
-            const currentDate = new Date(gridStartDate.getTime() + (i * dayMilliseconds));
-            
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            
-            // Determine if date is actually within the target year
-            // GitHub often shows a rolling year, but here we enforce the specific year view strictly visually
-            // but we might have overlap days from previous/next year in the first/last columns.
-            const isTargetYear = currentDate.getFullYear() === year;
-            
-            let count = 0;
-            if (isTargetYear) {
-                count = getAuditCount(currentDate);
-            }
-
-            // Assign Level Class
-            if (count === 0) cell.classList.add('l0');
-            else if (count <= 2) cell.classList.add('l1');
-            else if (count <= 4) cell.classList.add('l2');
-            else if (count <= 7) cell.classList.add('l3');
-            else cell.classList.add('l4');
-
-            // Tooltip Data
-            const dateStr = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            const tooltipText = count === 0 ? `No audits on ${dateStr}` : `${count} audits on ${dateStr}`;
-            
-            cell.addEventListener('mouseenter', (e) => {
-                tooltip.textContent = tooltipText;
-                tooltip.style.opacity = '1';
-                
-                const rect = cell.getBoundingClientRect();
-                tooltip.style.left = `${rect.left + window.scrollX - (tooltip.offsetWidth / 2) + 7}px`;
-                tooltip.style.top = `${rect.top + window.scrollY - 35}px`;
-            });
-
-            cell.addEventListener('mouseleave', () => {
-                tooltip.style.opacity = '0';
-            });
-
-            // Handle Month Labels
-            // We only add a label if this column contains the 1st of the month, 
-            // or if it's the first column and the month started recently.
-            // Since this is column-major order in CSS grid (auto-flow: column),
-            // we have to be careful. The loop goes day by day.
-            // Actually, CSS Grid with auto-flow column fills downwards first.
-            // So indices 0-6 are Col 1, 7-13 are Col 2.
-            
-            // Check if this cell is the top row (Sunday)
-            if (i % 7 === 0) {
-                const colIndex = i / 7;
-                // Check the date of the Monday (or approximate week start) to decide month label
-                // Let's grab the date of the cell in the 4th row (Wed) to determine "majority" month
-                const midWeekDate = new Date(currentDate.getTime() + (3 * dayMilliseconds));
-                const monthIndex = midWeekDate.getMonth();
-                
-                // Add label to DOM if we haven't rendered this month yet
-                // But we need to place it in the specific grid column
-                // The .months container is a CSS grid.
-                
-                const monthSpan = document.createElement('span');
-                if (!renderedMonths.has(monthIndex) && midWeekDate.getFullYear() === year) {
-                   monthSpan.textContent = monthNames[monthIndex];
-                   renderedMonths.add(monthIndex);
-                } else {
-                    monthSpan.textContent = "";
-                }
-                monthsRow.appendChild(monthSpan);
-            }
-
-            grid.appendChild(cell);
-        }
-
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
