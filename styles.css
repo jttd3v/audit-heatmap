@@ -54,7 +54,9 @@ html[data-heatmap-theme="dark"] {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
     background-color: var(--heatmap-bg-color);
     color: var(--heatmap-text-color);
     display: flex;
@@ -65,6 +67,26 @@ body {
     margin: 0;
     padding: 20px;
     transition: background-color 0.3s, color 0.3s;
+}
+
+/* Force Inter/Roboto on all form elements with standardized sizing */
+button,
+input,
+select,
+textarea,
+optgroup {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    height: 30px;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+/* Textarea needs auto height */
+textarea {
+    height: auto;
+    min-height: 40px;
 }
 
 .heatmap-wrapper {
@@ -104,10 +126,14 @@ body {
     background: var(--heatmap-btn-bg);
     border: 1px solid var(--heatmap-border-color);
     border-radius: 6px;
-    padding: 6px 10px;
+    padding: 0 12px;
+    height: 40px;
     cursor: pointer;
     font-size: 16px;
     transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .heatmap-theme-toggle:hover {
@@ -136,11 +162,16 @@ body {
     background: var(--heatmap-btn-bg);
     border: 1px solid var(--heatmap-border-color);
     border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
+    padding: 0 12px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
     color: var(--heatmap-text-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .heatmap-filter:hover {
@@ -164,12 +195,17 @@ body {
     background: var(--heatmap-btn-bg);
     border: 1px solid var(--heatmap-border-color);
     border-radius: 6px;
-    padding: 8px 16px;
+    padding: 0 16px;
+    height: 40px;
     font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
     color: var(--heatmap-text-color);
     min-width: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .heatmap-year-btn:hover {
@@ -394,8 +430,10 @@ html[data-heatmap-theme="dark"] .heatmap-cell.heatmap-l0 {
     color: var(--heatmap-btn-active-text);
     border: 1px solid var(--heatmap-btn-active);
     border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 13px;
+    padding: 0 12px;
+    height: 40px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -437,14 +475,18 @@ html[data-heatmap-theme="dark"] .heatmap-cell.heatmap-l0 {
 }
 
 .heatmap-dropdown-item {
-    display: block;
+    display: flex;
+    align-items: center;
     width: 100%;
-    padding: 10px 14px;
+    height: 40px;
+    padding: 0 14px;
     text-align: left;
     background: none;
     border: none;
+    border-radius: 0;
     color: var(--heatmap-text-color);
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -490,10 +532,12 @@ html[data-heatmap-theme="dark"] .heatmap-cell.heatmap-l0 {
 
 .heatmap-textfield-input {
     width: 100%;
-    padding: 16px 12px 8px 12px;
+    height: 40px;
+    padding: 8px 12px;
     font-size: 14px;
+    font-weight: 500;
     border: 1px solid var(--heatmap-border-color);
-    border-radius: 4px;
+    border-radius: 6px;
     background: var(--heatmap-container-bg);
     color: var(--heatmap-text-color);
     outline: none;
@@ -532,9 +576,10 @@ html[data-heatmap-theme="dark"] .heatmap-textfield-input:focus {
 
 /* Textarea variant */
 .heatmap-textfield-textarea {
+    height: auto;
     min-height: 100px;
     resize: vertical;
-    padding-top: 20px;
+    padding-top: 12px;
 }
 
 .heatmap-textfield-textarea ~ .heatmap-textfield-label {
@@ -549,18 +594,25 @@ html[data-heatmap-theme="dark"] .heatmap-textfield-input:focus {
 /* Form Actions */
 .heatmap-form-actions {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
     gap: 12px;
     margin-top: 32px;
 }
 
 .heatmap-btn {
-    padding: 10px 20px;
+    height: 40px;
+    padding: 0 20px;
     font-size: 14px;
+    font-weight: 500;
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s;
     border: 1px solid var(--heatmap-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
 }
 
 .heatmap-btn-secondary {
@@ -587,5 +639,43 @@ html[data-heatmap-theme="dark"] .heatmap-textfield-input:focus {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+@media print {
+    /* Use Times New Roman for ALL elements when printing */
+    *,
+    *::before,
+    *::after {
+        font-family: 'Times New Roman', Times, serif !important;
+    }
+    
+    /* Print-friendly adjustments */
+    body {
+        background: white !important;
+        color: black !important;
+        padding: 0;
+    }
+    
+    .heatmap-container {
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+    }
+    
+    /* Hide non-essential elements when printing */
+    .heatmap-theme-toggle,
+    .heatmap-dropdown,
+    .heatmap-year-selector,
+    .heatmap-filters {
+        display: none !important;
+    }
+    
+    /* Ensure heatmap cells print with colors */
+    .heatmap-cell {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
 }
 
